@@ -7,9 +7,13 @@ from tkFileDialog import askdirectory
 import tkFont
 import tkMessageBox
 
+import getopt
 import os
 import platform
-import getopt
+
+dateVar = None
+dateArg = False
+guiMode = False
 
 def findAppDataPath():
     system = platform.system()
@@ -47,6 +51,7 @@ def dirHasKillStreaksFile(path):
 
     return False
 
+#"Notable" means that demo is listed in KillStreaks.txt
 def getNotableDemos(killStreaksPath):
     with open(killStreaksPath) as f:
         lines = f.readlines()
@@ -58,43 +63,47 @@ def getNotableDemos(killStreaksPath):
         if lines[i].strip():
             matches = titleMatcher.match(lines[i])
             if matches.group(1) not in demos:
-                demos.append(matches.group(1).lower() + ".dem")
+                demos.append(matches.group(1) + ".dem")
 
     return demos
 
-def getAllDemos(path):
+#"Eligible" means that filename meets criteria for deletion
+def getEligibleDemos(path):
     try:
         files = os.listdir(path)
         demos = []
 
-        for i in range(0, len(files)):
-            if ".dem" in files[i]:
-                demos.append(files[i].lower())
+        onlyDeleteDates = dateVar.get() == 1 if guiMode else dateArg
 
+        for i in range(0, len(files)):
+            if (onlyDeleteDates and re.match(r'.*\d{8}_\d{4}.*\.dem', files[i])) or (not onlyDeleteDates and '.dem' in files[i]):
+                demos.append(files[i])      
         return demos
     except:
         return []
 
-def deleteUselessDemos(path, guiMode):
+def deleteUselessDemos(path):
     try: notableDemos = getNotableDemos(path + os.path.sep + 'KillStreaks.txt')
     except IOError:
         errorMessage = "Couldn't find KillStreaks.txt in the specified directory"
         if guiMode: tkMessageBox.showwarning("Error", errorMessage)
         else: print errorMessage
         return
-    allDemos = getAllDemos(path)
+    eligibleDemos = getEligibleDemos(path)
     counter = 0
 
-    if notableDemos and allDemos: # Not empty
-        for i in range(0, len(allDemos)):
-            if allDemos[i] not in notableDemos:
+    if notableDemos and eligibleDemos: # Not empty
+        for i in range(0, len(eligibleDemos)):
+            if eligibleDemos[i] not in notableDemos:
                 counter+=1
-                os.remove(path + os.path.sep + allDemos[i])
+                os.remove(path + os.path.sep + eligibleDemos[i])
       
     successMessage = getSuccessMessage(counter)
 
     if guiMode: tkMessageBox.showinfo("Success", successMessage)
-    else: print successMessage
+    else:
+        print ''
+        print successMessage
     
     with open(findAppDataPath() + 'tf2-demos-path.txt', 'w') as f:
         f.write(path)
@@ -120,6 +129,7 @@ class GUI (Frame):
         if not self.pathEntry.get(): self.setText(self.pathEntry, findDemosPath())
 
     def initUI(self):
+        self.settingsWindow = self.initSettings()
         titleFont = tkFont.Font(size=13, weight='bold')
         authorFont = tkFont.Font(size= 9, weight='bold')
         titleLabel = Label(self, text='P-REC Useless Demo Deleter', font=titleFont)
@@ -128,17 +138,65 @@ class GUI (Frame):
         self.pathEntry = Entry(self, width=80)
         browseButton = Button(self, text='Browse', command=self.onBrowse)
         self.autoFindButton = Button(self, text='Auto-find', command=self.onAutoFind)
-        deleteButton = Button(self, text='Delete useless demos', command=self.onDelete)
+        
+        dateFrame = Frame(self)
+        global dateVar
+        dateVar = IntVar()
+        dateVar.set(1)
+        dateButton = Checkbutton(dateFrame, variable=dateVar)
+        dateLabel = Label(dateFrame, text="Only delete demos with filenames containing P-REC's date format")
+        
+        bottomFrame = Frame(self)
+        settingsButton = Button(bottomFrame, text='Settings', command=self.onSettings)
+        deleteButton = Button(bottomFrame, text='Delete useless demos', command=self.onDelete)
 
-        titleLabel.grid(row=0, column=0, columnspan=4)
-        authorLabel.grid(row=1, column=0, columnspan=4, pady=(4, 20))
-        pathLabel.grid(row=2, column=0, padx=(0, 15))
-        self.pathEntry.grid(row=2, column=1, padx=(0, 15))
-        browseButton.grid(row=2, column=2, padx=(0, 8))
-        self.autoFindButton.grid(row=2, column=3)
-        deleteButton.grid(row=3, column=0, columnspan=4, pady=(25, 0))
+        row = 0;
+        titleLabel.grid(row=row, column=0, columnspan=4)
+        row += 1
+        authorLabel.grid(row=row, column=0, columnspan=4, pady=(4, 20))
+        row += 1
+        pathLabel.grid(row=row, column=0, padx=(0, 15))
+        self.pathEntry.grid(row=row, column=1, padx=(0, 15))
+        browseButton.grid(row=row, column=2, padx=(0, 8))
+        self.autoFindButton.grid(row=row, column=3)
+        row += 1
+        dateButton.grid(row=row, column=0)
+        dateLabel.grid(row=row, column=1)
+        row += 1
+        dateFrame.grid(row=row, column=0, columnspan=4, pady=(15, 0))
+        dateButton.grid(row=0, column=0)
+        dateLabel.grid(row=0, column=1)
+        row += 1
+        bottomFrame.grid(row=row, column=0, columnspan=4, pady=(25, 0))
+        #settingsButton.grid(row=0, column=0, padx=(0, 8))
+        deleteButton.grid(row=0, column=1)
 
         self.pack()
+
+    def initSettings(self):
+        window = Toplevel(width=500, height=300, padx=20, pady=15)
+        window.withdraw()
+        window.title('Settings')
+        center(window)
+        window.protocol("WM_DELETE_WINDOW", self.onSettingsExit)
+
+        self.dateVar = IntVar()
+        self.dateVar.set(1)
+        #self.dateVar.trace('w', self.onVarChanged)
+        self.dateButton = Checkbutton(window, variable=self.dateVar)
+        dateLabel = Label(window, text="Only delete demos with filenames containing P-REC's date format")
+        okayButton = Button(window, text='Okay')
+        
+        row = 0
+        self.dateButton.grid(row=row, column=0)
+        dateLabel.grid(row=row, column=1)
+        row += 1
+        okayButton.grid(row=row, column=0, columnspan=2, pady=(25, 0))
+
+        return window
+
+    def onSettingsExit(self):
+        self.settingsWindow.withdraw()
 
     def setText(self, entry, text):
         self.pathEntry.delete(0, len(entry.get()))
@@ -154,8 +212,11 @@ class GUI (Frame):
         else:
             tkMessageBox.showwarning("Sorry", "Couldn't automatically find your demos")
 
+    def onSettings(self):
+        self.settingsWindow.deiconify()
+
     def onDelete(self):
-        deleteUselessDemos(self.pathEntry.get(), True)
+        deleteUselessDemos(self.pathEntry.get())
 
 def center(window):
     window.update_idletasks()
@@ -168,11 +229,11 @@ def center(window):
 
 def printHelpMessage():
     print ''
-    print 'Use -p or --path to specify the location of your demos. Run the program without any arguments for a graphical user interface. Use -h or --help for these instructions.'
+    print "Run the program without any arguments for a graphical user interface.\nUse -p or --path to specify the location of your demos.\nUse -d or --date (no parameter) to indicate that you only wish to delete demos with filenames containing P-REC's date format.\nUse -h or --help for these instructions."
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:h', ['path=', 'help'])
+        opts, args = getopt.getopt(sys.argv[1:], 'p:dh', ['path=', 'date', 'help'])
     except getopt.GetoptError:
         print ""
         print "Invalid option."
@@ -180,16 +241,29 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if opts:
+        guiMode = False
+        deleteDemos = True
+        path = ''
+
         for opt, arg in opts:
-            if opt in ('-p', '--path'):
-                deleteUselessDemos(arg, False)
-            elif opt in ('-h', '--help'):
+            if opt in ('-h', '--help'):
                 printHelpMessage()
+                deleteDemos = False
+                break
+            elif opt in ('-p', '--path'):
+                path = arg
+            elif opt in ('-d', '--date'):
+                dateArg = True
             else:
                 print ""
                 print "'" + opt + "' is not a valid option."
                 printHelpMessage()
+                deleteDemos = False
+                break
+
+        if deleteDemos: deleteUselessDemos(path)
     else:
+        guiMode = True
         window = Tk()
         window.title('P-REC Useless Demo Deleter for TF2')
         try:
@@ -200,4 +274,5 @@ if __name__ == '__main__':
         center(window)
         window.update()
         window.resizable(width=FALSE, height=FALSE)
+        window.focus()
         window.mainloop()
