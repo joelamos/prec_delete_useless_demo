@@ -1,5 +1,5 @@
 #prec_delete_useless_demo
-This program is to be used in conjunction with the Team Fortress 2 recording tool, [P-REC](https://bitbucket.org/olegko/p-rec/wiki/Home). The `pre_delete_useless-demo 1` command doesn't always work as expected, especially on public servers. This program checks `Killstreaks.txt` and deletes your useless TF2 demos. Any demos not in `Killstreaks.txt` **will be deleted**.
+This program is to be used in conjunction with the Team Fortress 2 recording tool, [P-REC](https://bitbucket.org/olegko/p-rec/wiki/Home). The `pre_delete_useless-demo 1` command doesn't always work as expected, especially on public servers. This program checks `Killstreaks.txt` and deletes your useless TF2 demos. Any P-REC demos not in `Killstreaks.txt` **will be deleted**.
 
 ##Program arguments
 If you are running the program using a `.py` or console `.exe`file, you can use `-h` for help, `-p` to specify the path to your demos folder, and `-d` (no parameter) to indicate that you only wish to delete demos with filenames containing P-REC's date format. Running the program with no arguments will run the GUI version.
