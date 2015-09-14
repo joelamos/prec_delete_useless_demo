@@ -6,7 +6,7 @@ If you are running the program using a `.py` or console `.exe`file, you can use 
 
 ## Installation
 ### Windows
-Download the zip file [here](https://github.com/joelamos/prec_delete_useless_demo/releases/download/v1.0/Useless-Demo-Deleter-exes.zip), which contains two exes: `demo-deleter-gui.exe` and `demo-deleter-console.exe`. Use the former for a windowed experience and the latter with the command prompt (see `Program arguments` above).
+Download the zip file [here](https://github.com/joelamos/prec_delete_useless_demo/releases/download/v1.1/UselessDemoDeleter.v1.1.zip), which contains two exes: `demo-deleter-gui.exe` and `demo-deleter-console.exe`. Use the former for a windowed experience and the latter with the command prompt (see `Program arguments` above).
 
 If you experience problems, follow the instructions below.
 
